@@ -1,47 +1,47 @@
+// Важно: Убедитесь, что установлены правильные переменные окружения
+
+const fetch = require('node-fetch'); // если используешь fetch
+const { google } = require('googleapis'); // если используешь google API для Sheets
+
 export default async function handler(req, res) {
-  try {
-    const { sheetId, sheetName, context } = req.body;
-    if (!sheetId || !sheetName || !context) {
-      return res.status(400).json({ error: 'Missing required parameters' });
-    }
+  const { sheetId, sheetName, context } = req.body; // получаем данные из запроса
 
-    const prompt = `
-      Ты виртуальный помощник, имитирующий поведение пользователя Instagram.
-      На основе описания поста, какие действия выполнять:
-      - начать с Explore или Reels
-      - прокручивать Reels (смотреть, потом пропускать, смотреть повторно)
-      - ставить лайк (лимит 1 лайк за сессию)
-      - подписываться на автора (лимит 1 подписка)
-      - смотреть карусели
-      - смотреть комментарии
-      - случайные ошибки (нажатие кнопки "Настройки", уход назад, и т.д.)
+  // Формируем запрос для Gemini API (проверь URL)
+  const geminiApiUrl = 'https://your-gemini-api-url.com/endpoint'; // Замените на реальный URL
 
-      Описание поста:
-      ***${context}***
-    `;
-    const response = await fetch('https://gemini-api-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: prompt })
-    });
-
-    // Логируем ответ
-    const responseBody = await response.text(); // Получаем текстовый ответ
-    console.log('Ответ от API:', responseBody);
-
-    // Проверяем, что это JSON
-    let aiData;
-    try {
-      aiData = JSON.parse(responseBody);  // Пробуем распарсить
-    } catch (error) {
-      console.error('Ошибка при парсинге JSON:', error);
-      return res.status(500).json({ error: 'Ошибка при обработке данных от API' });
-    }
-
-    res.status(200).json({ decision: aiData.decision || "Нет решения" });
-  } catch (error) {
-    console.error('Ошибка на сервере:', error);
-    res.status(500).json({ error: 'Произошла ошибка на сервере' });
+  const prompt = `
+  На основе этого поста мы пишем рекомендации:
+  Внимание: сгенерированное действие будет случайным, с упором на скроллинг, изучение постов/профилей, подписки и лайки.
+  
+  Описание поста:
+  "${context}"
+  
+  Формат ответа:
+  {
+    "start": "Explore", // или "Reels"
+    "scroll": "duration: 5",  // время скроллинга
+    "open_post": "reason: 'интересное описание'",
+    "like": "reason: 'интересен контент'",
+    "follow": "reason: 'интересные профили'"
   }
+  `;
+  
+  // Делаем запрос к Gemini API
+  const response = await fetch(geminiApiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ prompt }), // отправляем запрос в API
+  });
+
+  const result = await response.json();
+  const aiReply = result.text || result.decision || "Нет ответа"; // Получаем ответ от AI
+  
+  // Записываем в Google Sheets (если необходимо)
+  // Здесь можно добавить код для работы с Google Sheets API, если требуется
+
+  // Возвращаем ответ клиенту
+  res.status(200).json({ decision: aiReply });
 }
 
